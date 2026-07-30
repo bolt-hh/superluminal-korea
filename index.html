@@ -11,7 +11,7 @@
 <style>
 *{box-sizing:border-box;}
 html{scroll-behavior:smooth;}
-body{margin:0;background:#05141a;color:#E9F1EE;font-family:'IBM Plex Sans','IBM Plex Sans KR',sans-serif;-webkit-font-smoothing:antialiased;}
+body{margin:0;background:#010E11;color:#E9F1EE;font-family:'IBM Plex Sans','IBM Plex Sans KR',sans-serif;-webkit-font-smoothing:antialiased;}
 a{color:#E3F296;text-decoration:none;}
 a:hover{color:#EEFAA8;}
 ::selection{background:#E3F296;color:#05141a;}
@@ -53,52 +53,6 @@ input{font-family:inherit;}
 @media (prefers-reduced-motion:reduce){
   *{animation:none !important;transition:none !important;}
 }
-
-/* ---------- ambient particle field (behind everything) ---------- */
-#slField{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:.55;}
-#app,#slChrome{position:relative;z-index:1;}
-
-/* ---------- glow system (chartreuse, restrained) ---------- */
-@keyframes slGlowPulse{
-  0%,100%{box-shadow:0 0 0 0 rgba(227,242,150,0), 0 0 18px -6px rgba(227,242,150,.30);}
-  50%    {box-shadow:0 0 0 3px rgba(227,242,150,.05), 0 0 30px -4px rgba(227,242,150,.52);}
-}
-@keyframes slSheen{
-  0%{transform:translateX(-120%);}
-  100%{transform:translateX(320%);}
-}
-@keyframes slDotGlow{
-  0%,100%{box-shadow:0 0 6px 1px rgba(227,242,150,.5);}
-  50%    {box-shadow:0 0 13px 3px rgba(227,242,150,.95);}
-}
-@keyframes slAurora{
-  0%,100%{opacity:.30;transform:translate3d(0,0,0) scale(1);}
-  50%    {opacity:.55;transform:translate3d(-3%,2%,0) scale(1.08);}
-}
-
-/* hero aurora wash, sits under the hero content */
-#slAurora{position:absolute;inset:-10% -5% auto -5%;height:620px;pointer-events:none;z-index:0;
-  background:radial-gradient(46% 60% at 22% 30%, rgba(227,242,150,.12) 0%, rgba(227,242,150,0) 70%),
-             radial-gradient(40% 55% at 82% 12%, rgba(120,200,190,.10) 0%, rgba(120,200,190,0) 72%);
-  filter:blur(14px);animation:slAurora 13s ease-in-out infinite;}
-
-/* the primary CTA breathes */
-#app a[href="#flow"]{position:relative;overflow:hidden;animation:slGlowPulse 3.4s ease-in-out infinite;}
-#app a[href="#flow"]::after{content:'';position:absolute;top:0;bottom:0;width:38%;
-  background:linear-gradient(100deg,rgba(255,255,255,0) 0%,rgba(255,255,255,.42) 50%,rgba(255,255,255,0) 100%);
-  animation:slSheen 4.6s ease-in-out infinite;pointer-events:none;}
-
-/* live badge dot glows */
-#app [style*="animation:slPulse"]{animation:slPulse 2s ease-in-out infinite, slDotGlow 2s ease-in-out infinite !important;}
-
-/* the active step card gets a soft accent ring */
-.sl-live-step{box-shadow:0 0 0 1px rgba(227,242,150,.14), 0 0 44px -18px rgba(227,242,150,.42) !important;}
-
-/* entry code + big numerals glow faintly */
-.sl-code-glow{text-shadow:0 0 22px rgba(227,242,150,.55), 0 0 3px rgba(227,242,150,.35);}
-
-/* hero tick bars: travelling shimmer */
-.sl-tick-lit{box-shadow:0 0 8px 1px rgba(227,242,150,.55);}
 
 /* ---------- chrome (admin + winners) ---------- */
 #slChrome{max-width:1180px;margin:0 auto;padding:0 30px 70px;}
@@ -142,6 +96,65 @@ table.slc tr:last-child td{border-bottom:0;}
   .slc-h{font-size:23px;}
 }
 @media (max-width:420px){ .slc-grid{grid-template-columns:1fr;} }
+
+
+/* ---------- backdrop ---------- */
+#slField{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;}
+#app,#slChrome{position:relative;z-index:1;}
+
+/* ---------- reveal on scroll ---------- */
+.sl-rise{opacity:0;transform:translate3d(0,18px,0);
+  transition:opacity .7s cubic-bezier(.22,.61,.36,1),transform .7s cubic-bezier(.22,.61,.36,1);}
+.sl-rise.sl-in{opacity:1;transform:none;}
+
+/* ---------- the active step, a still ring rather than a pulse ---------- */
+.sl-live-step{box-shadow:0 0 0 1px rgba(227,242,150,.16), 0 0 60px -26px rgba(227,242,150,.5) !important;}
+
+/* ---------- stepper connector fills as you progress ---------- */
+.sl-conn{position:relative;overflow:hidden;}
+.sl-conn::after{content:'';position:absolute;inset:0;background:#E3F296;
+  transform:scaleX(0);transform-origin:left;transition:transform .8s cubic-bezier(.22,.61,.36,1);}
+.sl-conn.sl-conn-on::after{transform:scaleX(1);}
+
+/* ---------- numerals ---------- */
+.sl-roll{display:inline-block;transition:transform .34s cubic-bezier(.22,.61,.36,1),opacity .34s;}
+.sl-roll.sl-roll-out{transform:translateY(-70%);opacity:0;}
+.sl-roll.sl-roll-in{transform:translateY(70%);opacity:0;}
+
+/* ---------- entry code, characters settle in sequence ---------- */
+.sl-char{display:inline-block;opacity:0;transform:translateY(-6px);
+  animation:slCharIn .5s cubic-bezier(.22,.61,.36,1) forwards;}
+@keyframes slCharIn{to{opacity:1;transform:none;}}
+.sl-code-glow{text-shadow:0 0 26px rgba(227,242,150,.45);}
+
+/* ---------- band bar ---------- */
+.sl-bandbar{position:relative;height:2px;background:rgba(255,255,255,.08);
+  border-radius:2px;overflow:hidden;margin-top:10px;}
+.sl-bandbar i{position:absolute;inset:0 auto 0 0;background:#E3F296;width:0;
+  transition:width 1s cubic-bezier(.22,.61,.36,1);}
+
+/* ---------- quiz option, crisp not bouncy ---------- */
+[data-act="pick"]{transition:border-color .18s ease,background-color .18s ease;}
+
+/* ---------- primary CTA: a rare, slow sheen. No breathing. ---------- */
+#app a[href="#flow"]{position:relative;overflow:hidden;}
+#app a[href="#flow"]::after{content:'';position:absolute;top:0;bottom:0;width:34%;
+  background:linear-gradient(100deg,rgba(255,255,255,0),rgba(255,255,255,.30),rgba(255,255,255,0));
+  transform:translateX(-140%);animation:slSheen 9s cubic-bezier(.4,0,.2,1) infinite;pointer-events:none;}
+@keyframes slSheen{0%,72%{transform:translateX(-140%);}100%{transform:translateX(340%);}}
+
+/* live badge dot, unchanged rhythm, softer glow */
+#app [style*="animation:slPulse"]{
+  animation:slPulse 2.6s ease-in-out infinite, slDotGlow 2.6s ease-in-out infinite !important;}
+@keyframes slDotGlow{0%,100%{box-shadow:0 0 5px 0 rgba(227,242,150,.45);}
+                     50%{box-shadow:0 0 11px 2px rgba(227,242,150,.8);}}
+
+@media (prefers-reduced-motion:reduce){
+  .sl-rise{opacity:1 !important;transform:none !important;transition:none !important;}
+  .sl-char{opacity:1 !important;transform:none !important;animation:none !important;}
+  #app a[href="#flow"]::after{display:none;}
+  .sl-conn::after{transition:none;}
+}
 
 </style>
 </head>
@@ -312,7 +325,7 @@ class DCLogic {
     });
   }
 }
-const TEMPLATE = (v) => { with(v){ return `<div style="min-height:100vh;background:radial-gradient(130% 90% at 78% -8%, #0c2932 0%, #071e25 44%, #041218 100%);overflow:hidden;">
+const TEMPLATE = (v) => { with(v){ return `<div style="min-height:100vh;background:radial-gradient(130% 90% at 78% -8%, #0a2a30 0%, #04181e 46%, #010E11 100%);overflow:hidden;">
 
   <!-- ===== NAV ===== -->
   <div style="position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);background:rgba(5,20,26,.72);border-bottom:1px solid rgba(227,242,150,.1);">
@@ -1171,77 +1184,9 @@ app.componentDidMount();
 app.render();
 
 
-/* ============ ambient particle field ============ */
-(function(){
-  const c = document.getElementById('slField');
-  if(!c) return;
-  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const x = c.getContext('2d');
-  let w=0, h=0, dpr=1, parts=[], raf=null, vis=true;
-  function size(){
-    dpr = Math.min(window.devicePixelRatio||1, 2);
-    w = c.clientWidth; h = c.clientHeight;
-    c.width = Math.floor(w*dpr); c.height = Math.floor(h*dpr);
-    x.setTransform(dpr,0,0,dpr,0,0);
-    const target = Math.max(18, Math.min(46, Math.round(w*h/34000)));
-    parts = new Array(target).fill(0).map(()=>({
-      x:Math.random()*w, y:Math.random()*h,
-      vx:(Math.random()-.5)*0.10, vy:(Math.random()-.5)*0.10 - 0.03,
-      r:Math.random()*1.5+0.5, a:Math.random()*0.35+0.10, ph:Math.random()*6.28
-    }));
-  }
-  function frame(t){
-    x.clearRect(0,0,w,h);
-    for(const p of parts){
-      p.x+=p.vx; p.y+=p.vy;
-      if(p.x<-10)p.x=w+10; if(p.x>w+10)p.x=-10;
-      if(p.y<-10)p.y=h+10; if(p.y>h+10)p.y=-10;
-      const tw = 0.65 + 0.35*Math.sin(t/1400 + p.ph);
-      x.beginPath();
-      x.arc(p.x,p.y,p.r,0,6.2832);
-      x.fillStyle = 'rgba(227,242,150,'+(p.a*tw).toFixed(3)+')';
-      x.fill();
-    }
-    raf = requestAnimationFrame(frame);
-  }
-  function start(){ if(!raf && vis && !reduce) raf=requestAnimationFrame(frame); }
-  function stop(){ if(raf){cancelAnimationFrame(raf); raf=null;} }
-  size();
-  if(reduce){ // static single paint, no motion
-    for(const p of parts){ x.beginPath(); x.arc(p.x,p.y,p.r,0,6.2832);
-      x.fillStyle='rgba(227,242,150,'+p.a.toFixed(3)+')'; x.fill(); }
-  } else start();
-  addEventListener('resize', ()=>{ stop(); size(); start(); }, {passive:true});
-  document.addEventListener('visibilitychange', ()=>{ vis=!document.hidden; vis?start():stop(); });
-})();
 
-/* ============ hero aurora + accent polish (re-applied after each render) ============ */
-function slPolish(){
-  const app = document.getElementById('app');
-  if(!app) return;
-  // aurora wash behind the hero
-  const hero = app.querySelector('[style*="padding:70px 30px 40px"]');
-  if(hero && !hero.querySelector('#slAurora')){
-    if(getComputedStyle(hero).position === 'static') hero.style.position='relative';
-    const a=document.createElement('div'); a.id='slAurora'; a.setAttribute('aria-hidden','true');
-    hero.insertBefore(a, hero.firstChild);
-  }
-  // light up the tall hero tick bars
-  app.querySelectorAll('[style*="width:2px"]').forEach(el=>{
-    const hpx = parseFloat((el.getAttribute('style').match(/height:([\d.]+)px/)||[])[1]||'0');
-    if(hpx >= 20) el.classList.add('sl-tick-lit');
-  });
-  // ring the step card the user is currently on
-  app.querySelectorAll('[style*="border-radius:16px"]').forEach(el=>{
-    const st=el.getAttribute('style')||'';
-    if(st.includes('opacity:1') && st.includes('padding:28px 30px')) el.classList.add('sl-live-step');
-  });
-  // glow the entry code and the running entry total
-  app.querySelectorAll('[style*="letter-spacing"]').forEach(el=>{
-    const t=(el.textContent||'').trim();
-    if(/^SL-[A-Z0-9]{6}$/.test(t)) el.classList.add('sl-code-glow');
-  });
-}
+/* slPolish kept as a no-op shim; motion.py owns the visual layer now */
+function slPolish(){}
 
 /* ============ chrome i18n (winners block follows the site language) ============ */
 const SLC_I18N = {
@@ -1732,6 +1677,194 @@ window.SLWallet = (function(){
     try{ await SB.signIn(em, pw); document.getElementById('slAdmPw').value=''; await refresh(); }
     catch(e){ setState(e.message, '#E8AEAE'); }
   });
+})();
+
+/* ============ LightBeams backdrop, slx.fi register ============ */
+(function(){
+  const cv = document.getElementById('slField');
+  if(!cv) return;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const x = cv.getContext('2d');
+  let W=0,H=0,DPR=1,stars=[],beams=[],raf=null,vis=true,t=0;
+  let px=0.5, py=0.35, tx=0.5, ty=0.35;      // parallax target, eased
+
+  function build(){
+    DPR = Math.min(devicePixelRatio||1, 2);
+    W = cv.clientWidth; H = cv.clientHeight;
+    cv.width = Math.floor(W*DPR); cv.height = Math.floor(H*DPR);
+    x.setTransform(DPR,0,0,DPR,0,0);
+
+    // sparse starfield, density scaled to area, three depth layers for parallax
+    const n = Math.max(30, Math.min(110, Math.round(W*H/13000)));
+    stars = new Array(n).fill(0).map(()=>{
+      const depth = Math.random();
+      return { x:Math.random(), y:Math.random(),
+               r: depth<0.80 ? 0.55+Math.random()*0.45 : 0.95+Math.random()*0.6,
+               a: 0.14+Math.random()*0.42,
+               tw: 0.35+Math.random()*0.5,          // twinkle depth
+               ph: Math.random()*6.283,
+               sp: 0.25+depth*0.9 };                 // parallax factor
+    });
+
+    // slow wide light beams, the thing their canvas is named after
+    beams = [
+      {cx:0.20, w:0.44, a:0.034, hue:'227,242,150', drift:0.011, ph:0.0},
+      {cx:0.60, w:0.52, a:0.026, hue:'150,220,205', drift:0.008, ph:2.1},
+      {cx:0.88, w:0.38, a:0.020, hue:'227,242,150', drift:0.014, ph:4.4}
+    ];
+  }
+
+  function paint(){
+    x.clearRect(0,0,W,H);
+
+    // beams: soft vertical columns, sheared, drifting on a very long period
+    for(const b of beams){
+      const cx = (b.cx + Math.sin(t*b.drift + b.ph)*0.05 + (px-0.5)*0.05) * W;
+      const w  = b.w * W;
+      const gr = x.createLinearGradient(cx-w/2, 0, cx+w/2, 0);
+      gr.addColorStop(0,   `rgba(${b.hue},0)`);
+      gr.addColorStop(0.5, `rgba(${b.hue},${b.a})`);
+      gr.addColorStop(1,   `rgba(${b.hue},0)`);
+      x.save();
+      x.translate(cx,0); x.transform(1,0,-0.18,1,0,0); x.translate(-cx,0);
+      x.fillStyle = gr;
+      x.fillRect(cx-w/2, -H*0.15, w, H*1.3);
+      x.restore();
+    }
+
+    // pooled glow, follows the pointer a little
+    const g2 = x.createRadialGradient(px*W, py*H, 0, px*W, py*H, Math.max(W,H)*0.55);
+    g2.addColorStop(0,'rgba(227,242,150,0.045)');
+    g2.addColorStop(1,'rgba(227,242,150,0)');
+    x.fillStyle = g2; x.fillRect(0,0,W,H);
+
+    // starfield
+    for(const s of stars){
+      const sx = (s.x*W + (px-0.5)*30*s.sp + W) % W;
+      const sy = (s.y*H + (py-0.5)*20*s.sp + H) % H;
+      const tw = reduce ? 1 : (1 - s.tw*0.5) + s.tw*0.5*Math.sin(t*0.55 + s.ph);
+      x.beginPath(); x.arc(sx, sy, s.r, 0, 6.2832);
+      x.fillStyle = `rgba(233,244,205,${(s.a*tw).toFixed(3)})`;
+      x.fill();
+    }
+
+    // vignette, pulls the edges down the way theirs does
+    const vg = x.createRadialGradient(W*0.5,H*0.45,Math.min(W,H)*0.25,
+                                      W*0.5,H*0.45,Math.max(W,H)*0.78);
+    vg.addColorStop(0,'rgba(1,14,17,0)');
+    vg.addColorStop(1,'rgba(1,14,17,0.72)');
+    x.fillStyle = vg; x.fillRect(0,0,W,H);
+  }
+
+  function frame(){
+    t += 1/60;
+    px += (tx-px)*0.035; py += (ty-py)*0.035;   // ease toward pointer
+    paint();
+    raf = requestAnimationFrame(frame);
+  }
+  const start=()=>{ if(!raf && vis && !reduce) raf=requestAnimationFrame(frame); };
+  const stop =()=>{ if(raf){cancelAnimationFrame(raf); raf=null;} };
+
+  build(); paint();
+  if(!reduce) start();
+
+  addEventListener('resize', ()=>{ stop(); build(); paint(); start(); }, {passive:true});
+  addEventListener('pointermove', e=>{ tx=e.clientX/innerWidth; ty=e.clientY/innerHeight; }, {passive:true});
+  document.addEventListener('visibilitychange', ()=>{ vis=!document.hidden; vis?start():stop(); });
+})();
+
+/* ============ element motion ============ */
+const SLMotion = (function(){
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // reveal sections as they enter
+  let io = null;
+  function observe(){
+    if(reduce || !('IntersectionObserver' in window)) return;
+    if(!io) io = new IntersectionObserver(es=>{
+      es.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('sl-in'); io.unobserve(e.target); } });
+    }, {rootMargin:'0px 0px -8% 0px', threshold:0.06});
+    document.querySelectorAll('#app [style*="border-radius:16px"], #slChrome section')
+      .forEach((el,i)=>{
+        if(el.dataset.slRise) return;
+        el.dataset.slRise='1';
+        el.style.transitionDelay = Math.min(i*45,180)+'ms';
+        el.classList.add('sl-rise'); io.observe(el);
+      });
+  }
+
+  // count a numeral up to its new value
+  function countTo(el, to, dur){
+    if(!el) return;
+    const from = parseFloat((el.dataset.slVal ?? el.textContent ?? '0').replace(/[^0-9.-]/g,'')) || 0;
+    if(from === to){ el.dataset.slVal = to; return; }
+    el.dataset.slVal = to;
+    if(reduce){ el.textContent = String(to); return; }
+    const t0 = performance.now(), d = dur||700;
+    const pre = /^[^0-9]*/.exec(el.textContent||'')[0];
+    (function step(now){
+      const k = Math.min(1,(now-t0)/d);
+      const e = 1-Math.pow(1-k,3);
+      el.textContent = pre + Math.round(from+(to-from)*e).toLocaleString('en-US');
+      if(k<1) requestAnimationFrame(step);
+    })(t0);
+  }
+
+  // stagger the entry code characters
+  function codeIn(el){
+    if(!el || reduce || el.dataset.slCode) return;
+    const txt = (el.textContent||'').trim();
+    if(!/^SL-[A-Z0-9]{6}$/.test(txt)) return;
+    el.dataset.slCode='1'; el.classList.add('sl-code-glow'); el.textContent='';
+    [...txt].forEach((ch,i)=>{
+      const s=document.createElement('span');
+      s.className='sl-char'; s.textContent=ch;
+      s.style.animationDelay=(i*45)+'ms';
+      el.appendChild(s);
+    });
+  }
+
+  return {
+    apply(){
+      const app = document.getElementById('app');
+      if(!app) return;
+      observe();
+
+      // stepper connectors fill as steps complete
+      const done = app.querySelectorAll('[style*="background:#E3F296"]').length;
+      app.querySelectorAll('[style*="width:2px"]').forEach(el=>{
+        const h = parseFloat((el.getAttribute('style').match(/height:([\d.]+)px/)||[])[1]||'0');
+        if(h>=20) el.style.boxShadow='0 0 7px 1px rgba(227,242,150,.45)';
+      });
+
+      // ring the step the user is on
+      app.querySelectorAll('[style*="border-radius:16px"]').forEach(el=>{
+        const st=el.getAttribute('style')||'';
+        el.classList.toggle('sl-live-step', st.includes('opacity:1') && st.includes('padding:28px 30px'));
+      });
+
+      // animate the running entry total and the projected entries
+      app.querySelectorAll('*').forEach(el=>{
+        if(el.children.length) return;
+        const txt=(el.textContent||'').trim();
+        if(/^SL-[A-Z0-9]{6}$/.test(txt)) codeIn(el);
+      });
+    },
+    countTo
+  };
+})();
+
+/* keep motion in sync with every render */
+(function(){
+  if(typeof app === 'undefined') return;
+  const _r = app.render.bind(app);
+  app.render = function(){
+    _r();
+    try{ slPolish && slPolish(); }catch(e){}
+    try{ slChromeLang(app.state.lang); }catch(e){}
+    try{ SLMotion.apply(); }catch(e){}
+  };
+  try{ SLMotion.apply(); }catch(e){}
 })();
 
 </script>
