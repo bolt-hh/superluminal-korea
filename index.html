@@ -10,12 +10,16 @@
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@1,400;1,500&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Sans+KR:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;}
+html, body { word-break:keep-all; overflow-wrap:break-word; }
 html{scroll-behavior:smooth;}
 body{margin:0;background:#010E11;color:#E9F1EE;font-family:'IBM Plex Sans','IBM Plex Sans KR',sans-serif;-webkit-font-smoothing:antialiased;}
 a{color:#E3F296;text-decoration:none;}
 a:hover{color:#EEFAA8;}
 ::selection{background:#E3F296;color:#05141a;}
 input{font-family:inherit;}
+h1,h2,h3,h4,p,span,div,a,button,input,label{word-break:keep-all;overflow-wrap:break-word;}
+/* tx hashes and wallet addresses may break anywhere, scoped to those only */
+.sl-breakall,[data-breakall]{word-break:break-all;overflow-wrap:anywhere;}
 @keyframes slFade{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:none;}}
 @keyframes slPulse{0%,100%{opacity:.5;}50%{opacity:1;}}
 @keyframes slSpin{to{transform:rotate(360deg);}}
@@ -924,14 +928,14 @@ class Component extends DCLogic {
     proofSrc:'출처 · 트레이더 카드 커뮤니티 이벤트',
     heroKicker:'SUPERLUMINAL KOREA · 커뮤니티 이벤트',
     heroH1a:'제품을 이해하고, 증명하고,', heroH1b:'직접 거래하자.',
-    heroSub:'Superluminal은 Fogo 위에 올라가는 퍼페추얼 DEX입니다. 퀴즈로 이해를 증명하고, 테스트넷 거래량으로 응모를 쌓으세요. 품질 지갑만 참여할 수 있습니다.',
+    heroSub:'Superluminal은 Fogo&nbsp;기반 퍼페추얼 DEX입니다. 퀴즈로 이해를 증명하고, 테스트넷 거래량으로 응모를 쌓으세요. 적격 지갑만 응모할 수 있습니다.',
     heroCta:'응모하기',
-    heroNote:'Silver 티어 이상 지갑만 응모 가능',
+    heroNote:'실버&nbsp;티어 이상 지갑만 응모 가능',
     flowTitle:'참여 방법', flowSub:'3단계 + 제출로 응모가 확정돼요',
-    s1Title:'지갑 연결 & 품질 확인',
-    s1Desc:'지갑을 연결하고 X 핸들을 입력하세요. 연결하는 순간 Silver 품질 확인이 돌아가요.',
+    s1Title:'지갑 연결 & 자격 확인',
+    s1Desc:'지갑을 연결하고 X 핸들을 입력하세요. 연결하면 실버&nbsp;티어 자격이 자동으로 확인돼요.',
     xLabel:'X 핸들',
-    s1Gate:'게이트 · Silver 티어 이상만 응모할 수 있습니다 (지갑 6개월 이상, DEX 거래 이력 필요)',
+    s1Gate:'대상 · 실버&nbsp;티어 이상 (지갑 생성 6개월 이상, DEX 거래 이력 보유)',
     s1Checking:'지갑 품질을 확인하는 중…',
     qualityScore:'품질 점수',
     s1Blocked:'이 지갑은 Silver 기준에 미달해 응모가 차단되었습니다. 아래 부족한 항목을 확인한 뒤 다른 지갑을 연결해 주세요.',
@@ -959,7 +963,7 @@ class Component extends DCLogic {
     bonusDesc:'이벤트에 대해 X에 올리고 링크를 붙여넣으면 보너스 응모를 받아요. 선택 사항이고, 응모 조건은 아닙니다.',
     bonusClaimed:'보너스 응모가 적용됐어요', postOnX:'X에 공유',
     pasteLink:'게시물 링크 붙여넣기', claimBonus:'보너스 받기',
-    footerBlurb:'Superluminal은 Fogo 위에 올라가는 퍼페추얼 DEX입니다. Prism 엔진이 주문을 배치로 묶어 단일 청산가로 체결하기 때문에, 속도가 아닌 가격이 체결 품질을 결정합니다.',
+    footerBlurb:'Superluminal은 Fogo&nbsp;기반 퍼페추얼 DEX입니다. Prism 엔진이 주문을 배치로 묶어 단일 청산가로 체결하기 때문에, 속도가 아닌 가격이 체결 품질을 결정합니다.',
     poweredBy:'제작 ·', builtOn:'FOGO 기반',
     footerConf:'', footerVersion:'', resetDemo:''
   },
@@ -1022,7 +1026,7 @@ renderVals(){
     const pillars = ko ? [
       {v:'이해를 증명하세요', k:'Superluminal 퀴즈 7문항 통과 = 기본 응모'},
       {v:'실제로 거래하세요', k:'테스트넷 거래량이 많을수록 높은 밴드'},
-      {v:'품질 지갑 전용', k:'Silver 티어 이상만 응모 가능'}
+      {v:'적격 지갑 전용', k:'실버&nbsp;티어 이상만 응모 가능'}
     ] : [
       {v:'Prove you understand it', k:'Pass the 7-question quiz = base entry'},
       {v:'Actually trade it', k:'More testnet volume, higher band'},
@@ -1035,7 +1039,7 @@ renderVals(){
 
     // ----- stepper -----
     const st = (done,active)=> done?{mark:'✓',bd:chart,bg:chart,fg:'#06181e',tc:'#C9D8D9'}:active?{mark:'',bd:chart,bg:'rgba(227,242,150,.12)',fg:chart,tc:'#C9D8D9'}:{mark:'',bd:'rgba(255,255,255,.2)',bg:'transparent',fg:'#6f8b8e',tc:'#6f8b8e'};
-    const st1=st(pass,!pass); st1.mark=pass?'✓':'1'; st1.label=ko?'품질':'Quality';
+    const st1=st(pass,!pass); st1.mark=pass?'✓':'1'; st1.label=ko?'자격':'Quality';
     const st2=st(s.quizPassed,pass&&!s.quizPassed); st2.mark=s.quizPassed?'✓':'2'; st2.label=ko?'퀴즈':'Quiz';
     const st3=st(s.traded,s.quizPassed&&!s.traded); st3.mark=s.traded?'✓':'3'; st3.label=ko?'거래':'Trade';
     const stepper=[st1,st2,st3];
