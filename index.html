@@ -322,10 +322,15 @@ class DCLogic {
       }
       const fn = v[act];
       if (typeof fn !== 'function') return;
+      /* Call handlers with the component as `this`. Every handler in the original
+         design was an arrow class property, which is auto-bound, so invoking them
+         bare worked by accident. The wallet handlers are prototype methods: `this`
+         arrived undefined, `this.state.lang` threw inside an async function, and
+         the click surfaced as an unhandled rejection with no visible effect. */
       if (el.getAttribute('data-ev') === 'input') {
-        el.addEventListener('input', e => fn(e));
+        el.addEventListener('input', e => fn.call(this, e));
       } else {
-        el.addEventListener('click', e => { e.preventDefault(); fn(e); });
+        el.addEventListener('click', e => { e.preventDefault(); fn.call(this, e); });
       }
     });
   }
@@ -1263,10 +1268,34 @@ SLC_I18N.KO.gateEnded = '응모가 마감되었습니다. 당첨자 발표는 �
 SLC_I18N.EN.gateEnded = 'Entries have closed. Winners will be announced in the winners section below.';
 SLC_I18N.EN.gateClosed = 'Entries are not open yet. You can walk through every step, and submission unlocks when entries open.';
 
-/* keep the polish + chrome language in sync with every render */
+/* keep the polish + chrome language in sync with every render, and keep the page
+   still while it happens.
+
+   render() replaces the step's innerHTML wholesale, so every keystroke in a text
+   field destroys the very input being typed into: focus is lost after one
+   character and the browser jumps back to the top of the document. Restore the
+   caret and the scroll position around the render so typing feels normal. */
 (function(){
   const _r = app.render.bind(app);
-  app.render = function(){ _r(); try{ slPolish(); slChromeLang(app.state.lang); }catch(e){} };
+  app.render = function(){
+    const a = document.activeElement;
+    const act = a && a.getAttribute ? a.getAttribute('data-act') : null;
+    let selS = null, selE = null;
+    if(act){ try{ selS = a.selectionStart; selE = a.selectionEnd; }catch(e){} }
+    const sx = window.scrollX, sy = window.scrollY;
+
+    _r();
+    try{ slPolish(); slChromeLang(app.state.lang); }catch(e){}
+
+    if(act){
+      const el = document.querySelector('[data-act="' + act + '"]');
+      if(el && el !== a){
+        try{ el.focus({preventScroll:true}); }catch(e){ el.focus(); }
+        if(selS !== null){ try{ el.setSelectionRange(selS, selE); }catch(e){} }
+      }
+    }
+    if(window.scrollX !== sx || window.scrollY !== sy) window.scrollTo(sx, sy);
+  };
 })();
 slPolish(); slChromeLang(app.state.lang);
 
@@ -1994,6 +2023,12 @@ const SLMotion = (function(){
       .forEach((el,i)=>{
         if(el.dataset.slRise) return;
         el.dataset.slRise='1';
+        /* render() replaces the markup, so these are brand new nodes and the
+           guard above is useless across renders: without this, every keystroke
+           in a text field re-hides and re-animates every card on the page.
+           Anything already on screen is revealed at once, with no transition. */
+        const r = el.getBoundingClientRect();
+        if(r.top < innerHeight && r.bottom > 0){ el.classList.add('sl-rise','sl-in'); return; }
         el.style.transitionDelay = Math.min(i*45,180)+'ms';
         el.classList.add('sl-rise'); io.observe(el);
       });
