@@ -30,12 +30,17 @@ Enable **Web Analytics** and **Speed Insights**. Do not attach a custom domain y
 |---|---|---|
 | `SUPABASE_URL` | score cache | scoring works, nothing is cached, entries fail on `score_missing` |
 | `SUPABASE_SERVICE_ROLE_KEY` | score cache writes | same as above |
-| `HELIUS_API_KEY` | wallet age, swap count, token count, bridge detection | loses up to 7 of 10 points, most wallets fall under Silver |
-| `BIRDEYE_API_KEY` | 30-day DEX volume, token fallback | loses 1 point |
+| `HELIUS_API_KEY` | wallet age, swap count, token count, bridge, perp check | loses up to 9 of 10 points, nearly every wallet falls under Silver |
+| `BIRDEYE_API_KEY` | 30-day DEX volume | loses 1 point |
 
 `SUPABASE_URL` is `https://dcpgnltlnkvzzwtmbpyv.supabase.co`. The service key is in the
-Supabase dashboard under Project Settings → API. Helius and Birdeye are free signups.
-Solscan, Hyperliquid and Drift need no key.
+Supabase dashboard under Project Settings → API. Helius and Birdeye are free signups and the
+free tiers are sufficient. Hyperliquid needs no key.
+
+Birdeye's free package is called **Standard**. The wallet-portfolio endpoint
+`/v1/wallet/token_list` is *not* on it and returns 401, which is what the earlier build hit;
+this one uses `/trader/txs/seek_by_time`, which is on Standard and, unlike the portfolio
+endpoint, actually measures traded volume rather than current holdings.
 
 **The first two are mandatory.** Without the cache the scoring endpoint returns a score
 but nothing is persisted, and `create_entry` refuses every submission with `score_missing`.
@@ -71,13 +76,13 @@ to initialise and only desktop extension wallets will work.
 
 | Signal | Points | Source |
 |---|---|---|
-| Wallet age 12+ months | 3 | Helius / Solscan |
-| Wallet age 6-11 months | 2 | Helius / Solscan |
-| Wallet age 3-5 months | 1 | Helius / Solscan |
+| Wallet age 12+ months | 3 | Helius RPC, paged to first transaction |
+| Wallet age 6-11 months | 2 | as above |
+| Wallet age 3-5 months | 1 | as above |
 | 5+ DEX swap events | 2 | Helius |
-| Drift perp history | 2 | Drift |
+| Solana perp history | 2 | on-chain, Velocity + Drift |
 | Hyperliquid perp history | 2 | Hyperliquid |
-| 5+ distinct tokens held | 1 | Helius / Birdeye |
+| 5+ distinct tokens held | 1 | Helius DAS |
 | $1K+ 30-day DEX volume | 1 | Birdeye |
 | Bridge or cross-chain activity | 1 | Helius |
 
@@ -90,11 +95,35 @@ one failing API scores 0 for its signal instead of blocking the result. The resp
 includes a `sources` map so you can see which APIs answered, and `degraded: true` when no
 source could establish wallet age.
 
-**Known limitation.** Hyperliquid is EVM-only. This activation connects an SVM wallet, so
-that signal scores 0 for Solana-native wallets and the practical maximum is 8 of 10. That
-does not affect the Silver gate, which is reachable on Solana signals alone, but it means
-Platinum is effectively unreachable unless an EVM address is also supplied. Worth deciding
-whether to collect one or to reweight.
+### Wallet age is paged, not sampled
+
+`getSignaturesForAddress` returns newest-first, so a single call describes recent activity,
+not the age of the wallet. The function pages backwards with a `before` cursor until a short
+page proves it has reached the first transaction, bounded to 3 pages and a 6s budget to stay
+inside the function's 10s ceiling. `ageExact` reports whether the oldest transaction found is
+genuinely the first one; when it is false the wallet is *at least* that old, which is all the
+banding needs.
+
+### The Solana perp signal reads the chain directly
+
+Drift relaunched as **Velocity** on a new program id and the Drift program is legacy and
+paused, so this signal covers both: Velocity for anyone trading perps now, Drift for anyone
+who traded before the migration. Neither exposes a public endpoint keyed by wallet authority,
+so instead of an API the function derives each program's user-account PDA for the wallet and
+asks whether it exists. An account that exists **and** is owned by the program can only have
+been created by that program, so the check cannot be spoofed, needs no key beyond Helius, and
+costs one `getMultipleAccounts` call.
+
+PDA derivation is done without `@solana/web3.js`: base58 and sha256 are implemented inline and
+the top 16 bump candidates are probed in the single batch rather than reimplementing the
+ed25519 on-curve test. Missing the canonical address would need all 16 candidates to be
+on-curve, roughly a 1-in-65,000 event. The implementation is cross-checked against
+`PublicKey.findProgramAddressSync`, which found the canonical PDA in 1,600 of 1,600 cases.
+
+**Platinum is now reachable on a Solana-native wallet.** Hyperliquid is still EVM-only and
+scores 0 here, but with the perp signal working a Solana wallet can reach 10 of 10 on age,
+swaps, perps, tokens, volume and bridge alone. The earlier note about an 8-of-10 ceiling no
+longer applies.
 
 ### The score cannot be forged
 
@@ -154,8 +183,11 @@ false. Verify before any payout.
 5. Correct the batch-clearing figure in the client's KOL brief; it says 40ms, the quiz says 100ms.
 6. Confirm the Superluminal `ref` parameter is live so outbound traffic is attributable.
 7. Set `deadline` in `slxka_app_settings` to a real KST timestamp.
-8. Decide the Hyperliquid / Platinum question above.
-9. Close `accepting_entries`, then reopen it deliberately at launch.
+8. Score a wallet you know has traded perps on Drift or Velocity and confirm `perpVenues`
+   comes back non-empty. The PDA derivation is verified against `@solana/web3.js`, but the
+   live match against real accounts has not been observed yet.
+9. Decide whether "Drift" in the client-facing model doc should now read "Velocity".
+10. Close `accepting_entries`, then reopen it deliberately at launch.
 
 ### KOL attribution
 
