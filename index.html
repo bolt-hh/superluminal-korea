@@ -184,7 +184,7 @@ table.slc tr:last-child td{border-bottom:0;}
   <section id="slAdmin" hidden aria-labelledby="slAdmTitle" style="margin-top:56px;padding-top:34px;border-top:1px solid rgba(255,255,255,.10)">
     <div class="slc-k">INTERNAL / ADMIN</div>
     <h2 class="slc-h" id="slAdmTitle">Admin panel</h2>
-    <p class="slc-sub">Superluminal Korea Activation. Figures below are sample data, the panel is wired to live reads at build.</p>
+    <p class="slc-sub">Superluminal Korea Activation. Figures are live reads from the campaign database; sign in to load them.</p>
 
     <div class="slc-tabs" role="tablist" aria-label="Admin sections">
       <button class="slc-tab" role="tab" aria-selected="true"  data-pane="dash">Dashboard</button>
@@ -207,12 +207,13 @@ table.slc tr:last-child td{border-bottom:0;}
         <h3 class="slc-mono" style="font-size:11px;letter-spacing:.13em;color:#6f8b8e;font-weight:400;margin:22px 0 8px;text-transform:uppercase">Wallet quality distribution</h3>
         <div class="slc-tblwrap"><table class="slc">
           <tr><th>Tier</th><th>Score</th><th>Wallets</th><th>Share</th></tr>
-          <tr><td>Platinum</td><td class="slc-mono">9.0 +</td><td class="slc-mono">0</td><td><div class="slc-bar"><span style="width:0%"></span></div></td></tr>
-          <tr><td>Gold</td><td class="slc-mono">7.0 - 8.9</td><td class="slc-mono">0</td><td><div class="slc-bar"><span style="width:0%"></span></div></td></tr>
-          <tr><td>Silver</td><td class="slc-mono">5.0 - 6.9</td><td class="slc-mono">0</td><td><div class="slc-bar"><span style="width:0%"></span></div></td></tr>
-          <tr><td>Blocked</td><td class="slc-mono">&lt; 5.0</td><td class="slc-mono">0</td><td><div class="slc-bar"><span style="width:0%"></span></div></td></tr>
+          <tr><td>Platinum</td><td class="slc-mono">9 - 10</td><td class="slc-mono">0</td><td><div class="slc-bar"><span style="width:0%"></span></div></td></tr>
+          <tr><td>Gold</td><td class="slc-mono">7 - 8</td><td class="slc-mono">0</td><td><div class="slc-bar"><span style="width:0%"></span></div></td></tr>
+          <tr><td>Silver</td><td class="slc-mono">5 - 6</td><td class="slc-mono">0</td><td><div class="slc-bar"><span style="width:0%"></span></div></td></tr>
+          <tr><td>Bronze</td><td class="slc-mono">3 - 4</td><td class="slc-mono">0</td><td><div class="slc-bar"><span style="width:0%"></span></div></td></tr>
+          <tr><td>Blocked</td><td class="slc-mono">&lt; 3</td><td class="slc-mono">0</td><td><div class="slc-bar"><span style="width:0%"></span></div></td></tr>
         </table></div>
-        <div class="slc-note">Entry gate is Silver (5.0+) per the Wallet Quality Verification model. Blocked wallets are counted but never create an entry row.</div>
+        <div class="slc-note">Scores are whole numbers, 0 to 10. Entry gate is Silver (5+) per the Wallet Quality Verification model, so Bronze and Blocked wallets are both counted but neither creates an entry row. Bronze is the near-miss band worth watching if the gate looks too tight.</div>
       </div>
 
       <!-- Entries -->
@@ -446,6 +447,7 @@ const TEMPLATE = (v) => { with(v){ return `<div style="min-height:100vh;backgrou
               <div>
                 <div style="font-family:'IBM Plex Sans','IBM Plex Sans KR',sans-serif;font-size:16px;font-weight:600;color:${s1.resTitleColor};">${s1.resTitle}</div>
                 <div style="margin-top:3px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#8fabb0;">${walletAddr} · ${xHandleShow}</div>
+                <button data-act="onDisconnect" data-hv="h2" style="margin-top:8px;padding:5px 12px;background:transparent;color:#8fabb0;border:1px solid rgba(255,255,255,.14);border-radius:6px;font-family:'IBM Plex Mono',monospace;font-size:11px;cursor:pointer;white-space:nowrap;">${t.s1Disconnect}</button>
               </div>
             </div>
             <div style="text-align:right;">
@@ -929,6 +931,7 @@ class Component extends DCLogic {
     qualityScore:'품질 점수',
     s1Blocked:'이 지갑은 Silver 기준에 미달해 응모가 차단되었습니다. 아래 부족한 항목을 확인한 뒤 다른 지갑을 연결해 주세요.',
     s1Retry:'다른 지갑 연결',
+    s1Disconnect:'연결 해제',
     s2Title:'Superluminal 퀴즈', baseEntryTag:'기본 응모',
     lockedAfter1:'STEP 1을 통과하면 열려요', passed:'통과',
     s2Desc:'Superluminal과 그 메커니즘에 대한 7문항. 7개 모두 맞혀야 하고, 통과할 때까지 다시 풀 수 있어요. 통과하면 기본 응모 1회가 주어집니다.',
@@ -973,6 +976,7 @@ class Component extends DCLogic {
     qualityScore:'Quality score',
     s1Blocked:'This wallet is below the Silver threshold and is blocked. Review the missing signals and connect a stronger wallet.',
     s1Retry:'Connect another wallet',
+    s1Disconnect:'Disconnect',
     s2Title:'Superluminal quiz', baseEntryTag:'BASE ENTRY',
     lockedAfter1:'Unlocks after Step 1', passed:'Passed',
     s2Desc:'7 questions on Superluminal and its mechanism. All 7 must be correct, retry until you pass. Passing grants one base entry.',
@@ -1159,7 +1163,7 @@ renderVals(){
       koBg,koFg,enBg,enFg, onKO:()=>this.set({lang:'KO'}), onEN:()=>this.set({lang:'EN'}),
       stepper, submitDot,
       s1, walletAddr, walletTier, walletScore, xHandleShow, walletSignals,
-      xHandle:s.xHandle, onXInput:this.onXInput, onConnect:this.connect,
+      xHandle:s.xHandle, onXInput:this.onXInput, onConnect:this.connect, onDisconnect:this.disconnect,
       s2:{border:s2locked?'rgba(255,255,255,.08)':'rgba(255,255,255,.12)', bg:'rgba(255,255,255,.015)', op:s2locked?'.5':'1', locked:s2locked, showQuiz:pass, accent:s2locked?'#6f8b8e':chart},
       quizPassed:s.quizPassed, quizChecked:s.quizChecked, quiz:quizArr,
       onCheckQuiz:this.checkQuiz, quizBtnLabel, quizBtnBg, quizBtnFg, quizMsg, quizMsgColor,
@@ -1213,7 +1217,17 @@ function slChromeLang(lang){
       admin.querySelectorAll('.slc-pane').forEach(p=>{ p.hidden = (p.dataset.pane !== want); });
     });
   });
-  function route(){ admin.hidden = (location.hash !== '#admin'); }
+  /* The panel sits at the foot of a very long page and '#admin' is not an element
+     id, so the browser has nothing to jump to. Without this the link looks dead. */
+  function route(){
+    const on = (location.hash === '#admin');
+    admin.hidden = !on;
+    if(on) requestAnimationFrame(()=>{
+      admin.scrollIntoView({behavior:'auto', block:'start'});
+      const f = admin.querySelector('input[type="email"], input');
+      if(f) try{ f.focus({preventScroll:true}); }catch(e){}
+    });
+  }
   addEventListener('hashchange', route); route();
 })();
 
@@ -1566,6 +1580,20 @@ window.SLWallet = (function(){
       return { address: addr.toString ? addr.toString() : String(addr),
                provider: inj.p, providerName: inj.name, via:'injected' };
     },
+    /* Release the wallet. AppKit keeps its own session in storage, so simply
+       dropping our state would silently reconnect the same wallet next time.
+       Both paths are best-effort: the UI resets either way. */
+    async disconnect(){
+      try{
+        const ak = await initAppKit();
+        if(ak && ak.disconnect) await ak.disconnect();
+      }catch(e){}
+      try{
+        const inj = injected();
+        if(inj && inj.p && inj.p.disconnect) await inj.p.disconnect();
+      }catch(e){}
+      return true;
+    },
     /* ed25519 ownership proof. The message carries a nonce and the origin so a
        signature cannot be replayed onto another site or another entry. */
     async proveOwnership(conn){
@@ -1648,6 +1676,19 @@ window.SLWallet = (function(){
         : (lang==='KO' ? '지갑 연결에 실패했어요. 다시 시도해 주세요.' : 'Wallet connection failed. Please try again.');
       slNotify(t);
     }
+  };
+
+  /* Disconnect / switch wallet. Without this a connected wallet is permanent
+     for the session: the connect button is replaced by the result card, so a
+     KOL who connects the wrong wallet has no way back and cannot re-test. */
+  C.disconnect = async function(){
+    const lang = this.state.lang;
+    try{ await SLWallet.disconnect(); }catch(e){}
+    /* The signature and score belong to the released wallet, so every
+       wallet-derived field goes with it. Quiz progress is deliberately kept. */
+    this.set({ checking:false, wallet:null });
+    slNotify(lang==='KO' ? '지갑 연결을 해제했습니다. 다른 지갑을 연결할 수 있어요.'
+                         : 'Wallet disconnected. You can connect a different one.');
   };
 })();
 
