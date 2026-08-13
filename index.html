@@ -288,8 +288,8 @@ const CONFIG = {
   BONUS_XSHARE: 5,
   DEADLINE_KST: null,
   ACCEPTING_ENTRIES: false,           // fail closed; the server is authoritative via slxka_is_open()
-  SUPABASE_URL: 'https://hqobmhvmgbzphhzeymvl.supabase.co',
-  SUPABASE_ANON_KEY: 'sb_publishable_y7sYa-ijVnS04qPWucyu0A_EzZQuC9E',   // publishable key only, never the service key
+  SUPABASE_URL: 'https://dcpgnltlnkvzzwtmbpyv.supabase.co',
+  SUPABASE_ANON_KEY: 'sb_publishable_qmiBY4oLwUkS_E3en2qUqw_CY8Ej2YG',   // publishable key only, never the service key
   R2_UPLOAD_ENDPOINT: null,          // no uploads in this mechanic
   REOWN_PROJECT_ID: '0ebdc1b350b890b0042e03a793980776',  // Reown AppKit (WalletConnect), same project as Fogo
   SVM_NETWORK: 'testnet'             // Superluminal runs on Fogo testnet in this phase
@@ -782,18 +782,7 @@ class Component extends DCLogic {
   }
   genVK(){ let s=''; const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; for(let i=0;i<6;i++)s+=c[Math.floor(Math.random()*c.length)]; return 'SL-'+s; }
 
-  connect = () => {
-    this.setState({checking:true, wallet:null});
-    clearTimeout(this._ct);
-    this._ct = setTimeout(()=>{
-      const score = Math.round((3 + Math.random()*7)*10)/10; // 3.0 - 10.0
-      const pass = score >= 5;
-      const tier = score>=9?'Platinum':score>=7?'Gold':score>=5?'Silver':'Blocked';
-      const age = pass ? (6+Math.floor(Math.random()*30)) : Math.floor(Math.random()*6);
-      const dex = pass ? (40+Math.floor(Math.random()*860)) : Math.floor(Math.random()*7);
-      this.set({checking:false, wallet:{addr:this.genAddr(), score, pass, tier, age, dex}});
-    }, 1000);
-  };
+  
 
   onXInput = (e)=> this.set({xHandle: e.target.value});
 
@@ -1066,12 +1055,18 @@ renderVals(){
     }
     const walletAddr = w?w.addr:''; const walletTier=w?w.tier:''; const walletScore=w?w.score:'';
     const xHandleShow = s.xHandle? (s.xHandle[0]==='@'?s.xHandle:'@'+s.xHandle) : (ko?'핸들 미입력':'no handle');
-    const walletSignals = w?[
-      {label: ko?'지갑 나이':'Wallet age', val: w.age+(ko?'개월':'mo'), ok: w.age>=6},
-      {label: ko?'DEX 거래 내역':'DEX trading history', val: w.dex+(ko?'건':' trades'), ok: w.dex>=10},
-      {label: ko?'신규 지갑 아님':'Not a fresh wallet', val: w.age>=6?(ko?'양호':'ok'):(ko?'해당':'flag'), ok: w.age>=6},
-      {label: ko?'봇 아님 (휴먼 패턴)':'Human pattern, not a bot', val: pass?(ko?'양호':'ok'):(ko?'의심':'suspect'), ok: pass},
-    ].map(x=>({...x, icon:x.ok?'✓':'✕', dotBg:x.ok?'rgba(227,242,150,.9)':'rgba(232,160,160,.9)', dotFg:'#06181e', valColor:x.ok?'#C9D8D9':'#E8AEAE'})):[];
+    const SLSIG = ko ? [{k:'age',   n:'지갑 사용 기간', p:'3 / 2 / 1'},{k:'dex',       n:'DEX 스왑 5회 이상', p:'2'},{k:'driftPerp', n:'Drift 퍼프 거래 이력', p:'2'},{k:'hlPerp',    n:'Hyperliquid 퍼프 거래 이력', p:'2'},{k:'tokens',    n:'보유 토큰 5종 이상', p:'1'},{k:'vol30d',    n:'30일 DEX 거래량 $1K 이상', p:'1'},{k:'bridge',    n:'브리지 · 크로스체인 이력', p:'1'}] : [{k:'age',   n:'Wallet age', p:'3 / 2 / 1'},{k:'dex',       n:'5+ DEX swaps', p:'2'},{k:'driftPerp', n:'Drift perp history', p:'2'},{k:'hlPerp',    n:'Hyperliquid perp history', p:'2'},{k:'tokens',    n:'5+ tokens held', p:'1'},{k:'vol30d',    n:'$1K+ 30-day DEX volume', p:'1'},{k:'bridge',    n:'Bridge or cross-chain', p:'1'}];
+    const _sg = (w && w.signals) || {};
+    const _agePts = _sg.age12 ? 3 : _sg.age6 ? 2 : _sg.age3 ? 1 : 0;
+    const walletSignals = SLSIG.map(r=>{
+      const on = r.k==='age' ? _agePts>0 : !!_sg[r.k];
+      const got = r.k==='age' ? String(_agePts) : (on ? r.p : '0');
+      return { label:r.n, val:got+' / '+r.p,
+        icon: on?'\u2713':'\u2715',
+        dotBg: on?'rgba(227,242,150,.16)':'rgba(255,255,255,.06)',
+        dotFg: on?'#E3F296':'#6f8b8e',
+        valColor: on?'#E3F296':'#6f8b8e' };
+    });
 
     // ----- step 2 quiz -----
     const s2locked = !pass;
@@ -1603,20 +1598,41 @@ window.SLWallet = (function(){
       const conn = await SLWallet.connect();
       const proof = await SLWallet.proveOwnership(conn);
 
-      /* Wallet quality score. Still simulated: scoring needs the Helius / Solscan /
-         Drift / Birdeye calls from the Wallet Quality Verification model, and those
-         keys must live server-side, not in this file. Seam is ready, score_verified
-         stays false on the row until that lands. */
-      const score = Math.round((3 + Math.random()*7)*10)/10;
+      /* Real wallet quality score. Computed server-side by /api/wallet-quality
+         against the nine signals in the Wallet Quality Verification model.
+         The client never decides the score; create_entry reads the stored one. */
+      let q = null;
+      try{
+        const r = await fetch('/api/wallet-quality', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ wallet: conn.address, evm: conn.evm || '' })
+        });
+        q = await r.json();
+        if(!r.ok || !q || q.ok !== true) throw new Error((q && q.error) || 'score_failed');
+      }catch(err){
+        this.setState({ checking:false });
+        slNotify(lang==='KO'
+          ? '지갑 자격을 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.'
+          : 'Could not verify wallet eligibility. Please try again shortly.');
+        return;
+      }
+
+      const score = Number(q.score);
       const pass  = score >= CONFIG.QUALITY_MIN;
-      const tier  = score>=9?'Platinum':score>=7?'Gold':score>=5?'Silver':'Blocked';
+      const tier  = q.tier;
+      const sg    = q.signals || {};
 
       this.set({ checking:false, wallet:{
         addr: conn.address,
         short: conn.address.slice(0,4) + '…' + conn.address.slice(-4),
         score, pass, tier,
-        age: pass ? (6+Math.floor(Math.random()*30)) : Math.floor(Math.random()*6),
-        dex: pass ? (40+Math.floor(Math.random()*860)) : Math.floor(Math.random()*7),
+        ageMonths: q.ageMonths,
+        signals: sg,
+        degraded: !!q.degraded,
+        sources: q.sources || {},
+        /* kept for the existing result card, now real rather than invented */
+        age: q.ageMonths == null ? 0 : Math.round(q.ageMonths),
+        dex: sg.dex ? 5 : 0,
         msg: proof.msg, sig: proof.sig, provider: conn.providerName
       }});
     }catch(e){
