@@ -51,17 +51,29 @@ Project id `0ebdc1b350b890b0042e03a793980776` (the Holo Hive project, same as Fo
 **Add the deployed domain to the allowlist in the Reown dashboard**, or AppKit will fail
 to initialise and only desktop extension wallets will work.
 
+AppKit is pinned to **1.6.8**, the build proven in production on the Fogo activation. Do not
+float this to `@1`: the connect flow depends on behaviour that is not covered by semver.
+
+Connect reads `getAddress()` / `getIsConnectedState()` **before** waiting on any event.
+`subscribeAccount` and `subscribeState` fire only on *change*, so a session AppKit restored
+at init, or a modal that is already open, emits nothing at all. Anything that waits purely
+on those events hangs forever. State is polled every 400ms, and re-read on `visibilitychange`
+and `focus` because Chrome throttles timers while the user is away in their wallet app.
+
 ---
 
 ## How an entry is created
 
-1. User connects a wallet through Reown AppKit (Solana adapter, testnet networks).
-   Falls back to injected Phantom / Solflare / Backpack if AppKit cannot load.
+1. User enters their **X handle and Telegram handle**, then connects a wallet through
+   Reown AppKit (Solana adapter, testnet networks). Falls back to injected Phantom /
+   Solflare / Backpack if AppKit cannot load.
 2. The site asks for an **ed25519 signature** over a message carrying the wallet address,
    the origin and a nonce. This proves ownership for payout and cannot be replayed onto
    another site or another entry. It is free and moves no funds.
-3. The site calls `POST /api/wallet-quality` with the address. The function scores the
-   wallet server-side and caches the result for 24 hours.
+3. Connecting does **not** score. The user presses **Score my wallet**, which calls
+   `POST /api/wallet-quality`. The function scores the wallet server-side and caches the
+   result for 24 hours. Splitting the two means a reconnect never silently re-runs the
+   API calls, and both handles are validated before any are spent.
 4. Quiz: 7 questions, all must be correct, unlimited retries. Verified server-side against
    `slxka_quiz_key`, which is never readable by the browser.
 5. Trade on testnet, then submit. `slxka_create_entry` reads the **stored** score, ignores
@@ -141,6 +153,12 @@ campaign, no other client's data present. All objects prefixed `slxka_`.
 
 Tables: `slxka_entries`, `slxka_kol_list`, `slxka_link_clicks`, `slxka_winners`,
 `slxka_app_settings`, `slxka_quiz_key`, `slxka_wallet_scores`.
+
+**Telegram is required and unique.** Winners are contacted and paid over Telegram, so
+`slxka_create_entry` refuses `telegram_required` when it is missing, `bad_telegram` when it
+does not match `^[A-Za-z0-9_]{4,32}$`, and `duplicate_telegram` when it is already used. It
+is stored with any leading `@` stripped and compared case-insensitively, so `@Name`, `name`
+and `NAME` are all one person and cannot be used to enter three times.
 
 `anon` has no access to `slxka_entries` at all. Entries exist only via the scoped RPC.
 `slxka_claim_bonus` adds exactly +5, once, on a still-pending row, and can never touch

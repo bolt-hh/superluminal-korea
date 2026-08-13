@@ -8,6 +8,7 @@ campaign. All objects prefixed `slxka_`. No other client's data is present.
 | Name | What it does |
 |---|---|
 | `slxka_01_tables_and_rls` | Seven tables, RLS enabled on all, policies. `anon` has no access to `slxka_entries`. |
+| `slxka_03_telegram_handle` | Adds `telegram` to `slxka_entries`; `slxka_create_entry` now requires it, validates the format, strips a leading `@`, and rejects duplicates case-insensitively. |
 | `slxka_02_rpcs` | Band maths, tier ladder, quiz verification, `slxka_is_open` deadline gate, create entry, claim bonus, resume, stats, seeds. |
 
 Seeds: `accepting_entries`, `deadline`, `winners_published`, `quality_gate`,
@@ -61,3 +62,6 @@ As `anon`, all verified on this project:
   when no server-computed score exists
 - a request claiming score 10 / Platinum against a stored 7 records 7 / Gold
 - `slxka_claim_bonus` twice on one ref: the second call refuses
+- entry with no telegram is refused `telegram_required`; `@ab` and `bad handle!` are refused
+  `bad_telegram`; `@KoreaTester` stores as `KoreaTester` and a later `koreatester` is refused
+  `duplicate_telegram` (verified, then rolled back, entries table left at 0)

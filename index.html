@@ -224,8 +224,8 @@ table.slc tr:last-child td{border-bottom:0;}
           <span style="flex:1"></span><button class="slc-btn">Export CSV</button>
         </div>
         <div class="slc-tblwrap"><table class="slc">
-          <tr><th>Code</th><th>X handle</th><th>Tier</th><th>Volume</th><th>Entries</th><th>KOL</th><th>Status</th><th></th></tr>
-          <tr><td colspan="8" style="text-align:center;color:#6f8b8e;padding:26px">No entries yet. Entries are closed until launch.</td></tr>
+          <tr><th>Code</th><th>X handle</th><th>Telegram</th><th>Tier</th><th>Volume</th><th>Entries</th><th>KOL</th><th>Status</th><th></th></tr>
+          <tr><td colspan="9" style="text-align:center;color:#6f8b8e;padding:26px">No entries yet. Entries are closed until launch.</td></tr>
         </table></div>
         <div class="slc-note">Approve / reject writes through a scoped RPC. Anon can never change status, and no reviewer action can set an arbitrary entry count.</div>
       </div>
@@ -423,11 +423,29 @@ const TEMPLATE = (v) => { with(v){ return `<div style="min-height:100vh;backgrou
             <label style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.08em;color:#8fabb0;">${t.xLabel}</label>
             <input value="${xHandle}" data-act="onXInput" data-ev="input" placeholder="@username" style="margin-top:8px;width:100%;padding:13px 15px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.15);border-radius:9px;color:#EFF4F0;font-size:15px;outline:none;">
           </div>
+          <div style="flex:1;min-width:240px;">
+            <label style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.08em;color:#8fabb0;">${t.tgLabel}</label>
+            <input value="${tgHandle}" data-act="onTgInput" data-ev="input" placeholder="@username" style="margin-top:8px;width:100%;padding:13px 15px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.15);border-radius:9px;color:#EFF4F0;font-size:15px;outline:none;">
+          </div>
           <div style="display:flex;flex-direction:column;justify-content:flex-end;">
             <button data-act="onConnect" style="padding:13px 24px;background:#E3F296;color:#06181e;border:none;border-radius:9px;font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;" data-hv="h1">${s1.connectLabel}</button>
           </div>
         </div>
         <div style="margin-top:14px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5f787b;">${t.s1Gate}</div>
+      `:""}
+
+            <!-- connected, awaiting the score step -->
+      ${(s1.showConnected)?`
+        <div style="margin-top:20px;border:1px solid rgba(227,242,150,.22);border-radius:12px;background:rgba(227,242,150,.04);padding:18px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+          <div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.08em;color:#8fabb0;">${t.walletConnected}</div>
+            <div style="margin-top:4px;font-family:'IBM Plex Mono',monospace;font-size:14px;color:#EFF4F0;">${connShort}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <button data-act="onDisconnect" data-hv="h2" style="padding:11px 16px;background:transparent;color:#8fabb0;border:1px solid rgba(255,255,255,.14);border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:12px;cursor:pointer;white-space:nowrap;">${t.s1Disconnect}</button>
+            <button data-act="onScore" data-hv="h1" style="padding:13px 22px;background:#E3F296;color:#06181e;border:none;border-radius:9px;font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;">${t.scoreCta}</button>
+          </div>
+        </div>
       `:""}
 
       <!-- checking -->
@@ -742,7 +760,7 @@ class Component extends DCLogic {
 
   state = {
     lang: 'KO', kol: '',
-    wallet: null, checking: false, xHandle: '',
+    wallet: null, conn: null, checking: false, xHandle: '', tgHandle: '',
     answers: {}, quizChecked: false, quizPassed: false,
     volume: 0, traded: false,
     submitted: false, vkCode: '', cardImg: '', cardSaved: false,
@@ -770,7 +788,7 @@ class Component extends DCLogic {
   persist(){
     try{
       const s=this.state;
-      const d={lang:s.lang,kol:s.kol,wallet:s.wallet,xHandle:s.xHandle,answers:s.answers,quizChecked:s.quizChecked,quizPassed:s.quizPassed,volume:s.volume,traded:s.traded,submitted:s.submitted,vkCode:s.vkCode,cardSaved:s.cardSaved,xShareClaimed:s.xShareClaimed,xLink:s.xLink};
+      const d={lang:s.lang,kol:s.kol,wallet:s.wallet,xHandle:s.xHandle,tgHandle:s.tgHandle,answers:s.answers,quizChecked:s.quizChecked,quizPassed:s.quizPassed,volume:s.volume,traded:s.traded,submitted:s.submitted,vkCode:s.vkCode,cardSaved:s.cardSaved,xShareClaimed:s.xShareClaimed,xLink:s.xLink};
       localStorage.setItem(this.KEY, JSON.stringify(d));
     }catch(e){}
   }
@@ -787,6 +805,7 @@ class Component extends DCLogic {
   
 
   onXInput = (e)=> this.set({xHandle: e.target.value});
+  onTgInput = (e)=> this.set({tgHandle: e.target.value});
 
   pick(qi, oi){ if(this.state.quizPassed) return; const a={...this.state.answers, [qi]:oi}; this.set({answers:a, quizChecked:false}); }
 
@@ -924,7 +943,7 @@ class Component extends DCLogic {
     heroNote:'실버&nbsp;티어 이상 지갑만 응모 가능',
     flowTitle:'참여 방법', flowSub:'3단계 + 제출로 응모가 확정돼요',
     s1Title:'지갑 연결 & 자격 확인',
-    s1Desc:'지갑을 연결하고 X 핸들을 입력하세요. 연결하면 실버&nbsp;티어 자격이 자동으로 확인돼요.',
+    s1Desc:'X 핸들과 텔레그램 핸들을 입력한 뒤 지갑을 연결하세요. 연결이 끝나면 지갑 점수를 확인해 실버&nbsp;티어 자격을 판정합니다. 당첨 안내는 텔레그램으로 전달돼요.',
     xLabel:'X 핸들',
     s1Gate:'대상 · 실버&nbsp;티어 이상 (지갑 생성 6개월 이상, DEX 거래 이력 보유)',
     s1Checking:'지갑 품질을 확인하는 중…',
@@ -932,6 +951,9 @@ class Component extends DCLogic {
     s1Blocked:'이 지갑은 Silver 기준에 미달해 응모가 차단되었습니다. 아래 부족한 항목을 확인한 뒤 다른 지갑을 연결해 주세요.',
     s1Retry:'다른 지갑 연결',
     s1Disconnect:'연결 해제',
+    tgLabel:'텔레그램 핸들',
+    walletConnected:'연결된 지갑',
+    scoreCta:'지갑 점수 확인',
     s2Title:'Superluminal 퀴즈', baseEntryTag:'기본 응모',
     lockedAfter1:'STEP 1을 통과하면 열려요', passed:'통과',
     s2Desc:'Superluminal과 그 메커니즘에 대한 7문항. 7개 모두 맞혀야 하고, 통과할 때까지 다시 풀 수 있어요. 통과하면 기본 응모 1회가 주어집니다.',
@@ -969,7 +991,7 @@ class Component extends DCLogic {
     heroNote:'Open to Silver-tier wallets and above',
     flowTitle:'How to enter', flowSub:'Three steps + submit locks your entry',
     s1Title:'Connect wallet & quality check',
-    s1Desc:'Connect your wallet and enter your X handle. A Silver quality check runs at connect.',
+    s1Desc:'Enter your X and Telegram handles, then connect your wallet. Once connected, run the quality check to see whether you clear Silver. Winners are contacted on Telegram.',
     xLabel:'X handle',
     s1Gate:'Gate · Silver tier required (6+ months wallet age, active DEX trading history)',
     s1Checking:'Checking wallet quality…',
@@ -977,6 +999,9 @@ class Component extends DCLogic {
     s1Blocked:'This wallet is below the Silver threshold and is blocked. Review the missing signals and connect a stronger wallet.',
     s1Retry:'Connect another wallet',
     s1Disconnect:'Disconnect',
+    tgLabel:'Telegram handle',
+    walletConnected:'Wallet connected',
+    scoreCta:'Score my wallet',
     s2Title:'Superluminal quiz', baseEntryTag:'BASE ENTRY',
     lockedAfter1:'Unlocks after Step 1', passed:'Passed',
     s2Desc:'7 questions on Superluminal and its mechanism. All 7 must be correct, retry until you pass. Passing grants one base entry.',
@@ -1043,7 +1068,8 @@ renderVals(){
     const s1={
       border: pass?'rgba(227,242,150,.28)':(w&&!pass)?'rgba(232,160,160,.35)':'rgba(255,255,255,.1)',
       bg:'rgba(255,255,255,.015)', op:'1',
-      showConnect: !w && !s.checking, checking: s.checking, showResult: !!w && !s.checking,
+      showConnect: !w && !s.conn && !s.checking, showConnected: !!s.conn && !w && !s.checking,
+      checking: s.checking, showResult: !!w && !s.checking,
       connectLabel: ko?'지갑 연결':'Connect wallet',
       blocked: !!(w&&!pass),
     };
@@ -1163,7 +1189,8 @@ renderVals(){
       koBg,koFg,enBg,enFg, onKO:()=>this.set({lang:'KO'}), onEN:()=>this.set({lang:'EN'}),
       stepper, submitDot,
       s1, walletAddr, walletTier, walletScore, xHandleShow, walletSignals,
-      xHandle:s.xHandle, onXInput:this.onXInput, onConnect:this.connect, onDisconnect:this.disconnect,
+      xHandle:s.xHandle, onXInput:this.onXInput, onConnect:this.connect, onDisconnect:this.disconnect, onScore:this.scoreWallet,
+      tgHandle:s.tgHandle, onTgInput:this.onTgInput, connShort:(s.conn?s.conn.short:""),
       s2:{border:s2locked?'rgba(255,255,255,.08)':'rgba(255,255,255,.12)', bg:'rgba(255,255,255,.015)', op:s2locked?'.5':'1', locked:s2locked, showQuiz:pass, accent:s2locked?'#6f8b8e':chart},
       quizPassed:s.quizPassed, quizChecked:s.quizChecked, quiz:quizArr,
       onCheckQuiz:this.checkQuiz, quizBtnLabel, quizBtnBg, quizBtnFg, quizMsg, quizMsgColor,
@@ -1328,6 +1355,7 @@ function slNotify(msg, tone){
     try{
       const res = await SB.rpc('slxka_create_entry', { p: {
         x_handle:    s.xHandle,
+        telegram:    String(s.tgHandle||'').trim().replace(/^@+/, ''),
         wallet:      s.wallet.addr || null,
         wallet_score: s.wallet.score,
         wallet_tier: s.wallet.tier,
@@ -1499,13 +1527,16 @@ SL_ERR.wallet_required    = {KO:'지갑을 먼저 연결해 주세요.',        
 SL_ERR.signature_required = {KO:'지갑 소유 서명이 필요합니다.',          EN:'A wallet ownership signature is required.'};
 SL_ERR.bad_wallet         = {KO:'지갑 주소 형식이 올바르지 않습니다.',    EN:'That wallet address is not valid.'};
 SL_ERR.duplicate_wallet   = {KO:'이미 응모에 사용된 지갑입니다.',        EN:'That wallet has already entered.'};
+SL_ERR.telegram_required  = {KO:'텔레그램 핸들을 입력해 주세요.',        EN:'Enter your Telegram handle.'};
+SL_ERR.bad_telegram       = {KO:'텔레그램 핸들 형식이 올바르지 않습니다. 영문, 숫자, 밑줄 4~32자입니다.', EN:'That Telegram handle is not valid. 4 to 32 characters, letters, numbers and underscores.'};
+SL_ERR.duplicate_telegram = {KO:'이미 응모에 사용된 텔레그램 핸들입니다.', EN:'That Telegram handle has already entered.'};
 
 /* ============ Reown AppKit, Solana/SVM ============ */
 /* Loaded as a module so AppKit can be imported from the CDN with no build step.
    Falls back to injected providers (Phantom / Solflare / Backpack) if AppKit
    cannot load, so a wallet is always reachable. */
 window.SLWallet = (function(){
-  let appKit = null, ready = false, mode = 'none';
+  let appKit = null, initing = null, ready = false, mode = 'none';
 
   function b58(bytes){
     const A='123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
@@ -1519,12 +1550,21 @@ window.SLWallet = (function(){
   }
 
   async function initAppKit(){
-    if(appKit || !CONFIG.REOWN_PROJECT_ID || CONFIG.REOWN_PROJECT_ID.indexOf('__')===0) return null;
+    /* Return the cached instance. This used to read `if(appKit) return null`,
+       which meant every call after the first fell through to the injected
+       fallback and, worse, disconnect() could never reach AppKit at all. */
+    if(appKit) return appKit;
+    if(!CONFIG.REOWN_PROJECT_ID || CONFIG.REOWN_PROJECT_ID.indexOf('__')===0) return null;
+    if(initing) return initing;
+    initing = (async () => {
     try{
+      /* Pinned. A floating `@1` silently upgrades across AppKit minors, and the
+         connect flow depends on behaviour that is not covered by semver. 1.6.8
+         is the build already proven in production on the Fogo activation. */
       const [{ createAppKit }, { SolanaAdapter }, nets] = await Promise.all([
-        import('https://esm.sh/@reown/appkit@1?bundle'),
-        import('https://esm.sh/@reown/appkit-adapter-solana@1?bundle'),
-        import('https://esm.sh/@reown/appkit/networks?bundle')
+        import('https://esm.sh/@reown/appkit@1.6.8?bundle'),
+        import('https://esm.sh/@reown/appkit-adapter-solana@1.6.8?bundle'),
+        import('https://esm.sh/@reown/appkit@1.6.8/networks?bundle')
       ]);
       const networks = CONFIG.SVM_NETWORK === 'mainnet'
         ? [nets.solana] : [nets.solanaTestnet, nets.solanaDevnet];
@@ -1542,7 +1582,23 @@ window.SLWallet = (function(){
       });
       ready = true; mode = 'appkit';
       return appKit;
-    }catch(e){ console.warn('[wallet] AppKit unavailable, falling back:', e && e.message); return null; }
+    }catch(e){
+      console.warn('[wallet] AppKit unavailable, falling back:', e && e.message);
+      initing = null;
+      return null;
+    }
+    })();
+    return initing;
+  }
+
+  /* AppKit's current account, or null. subscribeAccount only fires on CHANGE,
+     so anything that relies on it alone misses a session that is already live. */
+  function currentAddress(ak){
+    try{
+      if(ak.getIsConnectedState && !ak.getIsConnectedState()) return null;
+      const a = ak.getAddress && ak.getAddress();
+      return a || null;
+    }catch(e){ return null; }
   }
 
   function injected(){
@@ -1560,12 +1616,50 @@ window.SLWallet = (function(){
       // 1. Reown AppKit
       const ak = await initAppKit();
       if(ak){
-        await ak.open();
-        const addr = await new Promise((res)=>{
-          const t = setTimeout(()=>res(null), 120000);
-          const stop = ak.subscribeAccount ? ak.subscribeAccount(a=>{
-            if(a && a.address){ clearTimeout(t); stop && stop(); res(a.address); }
-          }) : null;
+        /* Already connected from a previous visit: AppKit restores the session
+           during init, long before we could subscribe, and then never emits
+           again. Read the state instead of waiting for an event. */
+        const live = currentAddress(ak);
+        const addr = live || await new Promise((res)=>{
+          let done = false, unsubAcct = null, poll = null, hard = null;
+          let opened = false, closedTicks = 0;
+          const finish = (v)=>{
+            if(done) return; done = true;
+            try{ unsubAcct && unsubAcct(); }catch(e){}
+            clearInterval(poll); clearTimeout(hard);
+            removeEventListener('visibilitychange', wake);
+            removeEventListener('focus', wake);
+            res(v || null);
+          };
+          /* Connecting almost always means leaving the tab for a wallet app or
+             extension popup, and Chrome throttles timers in a hidden tab. Re-read
+             the moment we are visible again so the poll's delay is never felt. */
+          const wake = ()=>{ const a = currentAddress(ak); if(a) finish(a); };
+          /* Subscribe BEFORE opening. Opening first leaves a window in which a
+             fast connect emits before anyone is listening. */
+          try{ unsubAcct = ak.subscribeAccount(a=>{ if(a && a.address) finish(a.address); }); }catch(e){}
+
+          /* Everything else is read from state on a timer rather than waited on
+             as an event. Both subscribeAccount and subscribeState fire only on
+             CHANGE, so a modal that is already open, or a session restored
+             before we subscribed, emits nothing at all. Polling cannot miss it. */
+          poll = setInterval(()=>{
+            const a = currentAddress(ak);
+            if(a) return finish(a);
+            let st = null;
+            try{ st = ak.getState ? ak.getState() : null; }catch(e){}
+            if(!st) return;
+            if(st.open){ opened = true; closedTicks = 0; return; }
+            /* Modal closed after being open: the user cancelled. Allow a short
+               grace period for a connect that lands as the modal dismisses. */
+            if(opened && ++closedTicks >= 3) finish(currentAddress(ak));
+          }, 400);
+
+          addEventListener('visibilitychange', wake);
+          addEventListener('focus', wake);
+
+          hard = setTimeout(()=>finish(currentAddress(ak)), 180000);
+          Promise.resolve(ak.open()).then(()=>{ opened = true; }).catch(()=>finish(null));
         });
         if(!addr) throw new Error('cancelled');
         const provider = ak.getWalletProvider ? ak.getWalletProvider() : null;
@@ -1584,14 +1678,25 @@ window.SLWallet = (function(){
        dropping our state would silently reconnect the same wallet next time.
        Both paths are best-effort: the UI resets either way. */
     async disconnect(){
+      let cleared = false;
       try{
         const ak = await initAppKit();
-        if(ak && ak.disconnect) await ak.disconnect();
-      }catch(e){}
+        if(ak && ak.disconnect){ await ak.disconnect(); cleared = true; }
+      }catch(e){ console.warn('[wallet] appkit disconnect:', e && e.message); }
       try{
         const inj = injected();
         if(inj && inj.p && inj.p.disconnect) await inj.p.disconnect();
       }catch(e){}
+      /* AppKit persists the session in localStorage. If its own disconnect did
+         not run we must clear those keys, or the next connect silently restores
+         the wallet the user just released. */
+      if(!cleared){
+        try{
+          Object.keys(localStorage)
+            .filter(k=>/^(@w3m|@appkit|wc@|wagmi|WALLETCONNECT)/i.test(k))
+            .forEach(k=>localStorage.removeItem(k));
+        }catch(e){}
+      }
       return true;
     },
     /* ed25519 ownership proof. The message carries a nonce and the origin so a
@@ -1619,12 +1724,60 @@ window.SLWallet = (function(){
 /* ---- replace the simulated connect() with the real one ---- */
 (function(){
   const C = Component.prototype;
+  /* Step one of two: connect and prove ownership. Scoring is a separate,
+     deliberate action, so a reconnect never silently re-runs the API calls. */
   C.connect = async function(){
     const lang = this.state.lang;
-    this.setState({ checking:true, wallet:null });
+    this.setState({ checking:true, wallet:null, conn:null });
     try{
       const conn = await SLWallet.connect();
       const proof = await SLWallet.proveOwnership(conn);
+      this.set({ checking:false, conn:{
+        addr: conn.address,
+        short: conn.address.slice(0,4) + '…' + conn.address.slice(-4),
+        evm: conn.evm || '',
+        msg: proof.msg, sig: proof.sig, provider: conn.providerName
+      }});
+      return;
+    }catch(e){
+      this.setState({ checking:false, conn:null });
+      const m = (e && e.message) || '';
+      const t = m==='no_wallet'
+        ? (lang==='KO' ? '지갑을 찾을 수 없습니다. Phantom 같은 SVM 지갑을 설치해 주세요.'
+                       : 'No wallet found. Install an SVM wallet such as Phantom.')
+        : m==='cancelled'
+        ? (lang==='KO' ? '지갑 연결이 취소됐어요.' : 'Wallet connection cancelled.')
+        : m==='no_sign'
+        ? (lang==='KO' ? '이 지갑은 메시지 서명을 지원하지 않습니다.' : 'This wallet cannot sign messages.')
+        : (lang==='KO' ? '지갑 연결에 실패했어요. 다시 시도해 주세요.' : 'Wallet connection failed. Please try again.');
+      slNotify(t);
+      return;
+    }
+  };
+
+  /* Step two: score the connected wallet. Both handles are required before we
+     spend the API calls, and the same rule is enforced again server-side. */
+  C.scoreWallet = async function(){
+    const lang = this.state.lang, s = this.state;
+    const conn = s.conn;
+    if(!conn){
+      slNotify(lang==='KO' ? '먼저 지갑을 연결해 주세요.' : 'Connect a wallet first.');
+      return;
+    }
+    if(!String(s.xHandle||'').trim()){
+      slNotify(lang==='KO' ? 'X 핸들을 입력해 주세요.' : 'Enter your X handle.');
+      return;
+    }
+    const tg = String(s.tgHandle||'').trim().replace(/^@+/, '');
+    if(!/^[A-Za-z0-9_]{4,32}$/.test(tg)){
+      slNotify(lang==='KO'
+        ? '텔레그램 핸들을 확인해 주세요. 영문, 숫자, 밑줄 4~32자입니다.'
+        : 'Check your Telegram handle. 4 to 32 characters, letters, numbers and underscores.');
+      return;
+    }
+    this.setState({ checking:true });
+    try{
+      const proof = { msg: conn.msg, sig: conn.sig };
 
       /* Real wallet quality score. Computed server-side by /api/wallet-quality
          against the nine signals in the Wallet Quality Verification model.
@@ -1633,7 +1786,7 @@ window.SLWallet = (function(){
       try{
         const r = await fetch('/api/wallet-quality', {
           method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ wallet: conn.address, evm: conn.evm || '' })
+          body: JSON.stringify({ wallet: conn.addr, evm: conn.evm || '' })
         });
         q = await r.json();
         if(!r.ok || !q || q.ok !== true) throw new Error((q && q.error) || 'score_failed');
@@ -1651,8 +1804,8 @@ window.SLWallet = (function(){
       const sg    = q.signals || {};
 
       this.set({ checking:false, wallet:{
-        addr: conn.address,
-        short: conn.address.slice(0,4) + '…' + conn.address.slice(-4),
+        addr: conn.addr,
+        short: conn.short,
         score, pass, tier,
         ageMonths: q.ageMonths,
         signals: sg,
@@ -1661,20 +1814,12 @@ window.SLWallet = (function(){
         /* kept for the existing result card, now real rather than invented */
         age: q.ageMonths == null ? 0 : Math.round(q.ageMonths),
         dex: sg.dex ? 5 : 0,
-        msg: proof.msg, sig: proof.sig, provider: conn.providerName
+        msg: proof.msg, sig: proof.sig, provider: conn.provider
       }});
     }catch(e){
       this.setState({ checking:false });
-      const m = (e && e.message) || '';
-      const t = m==='no_wallet'
-        ? (lang==='KO' ? '지갑을 찾을 수 없습니다. Phantom 같은 SVM 지갑을 설치해 주세요.'
-                       : 'No wallet found. Install an SVM wallet such as Phantom.')
-        : m==='cancelled'
-        ? (lang==='KO' ? '지갑 연결이 취소됐어요.' : 'Wallet connection cancelled.')
-        : m==='no_sign'
-        ? (lang==='KO' ? '이 지갑은 메시지 서명을 지원하지 않습니다.' : 'This wallet cannot sign messages.')
-        : (lang==='KO' ? '지갑 연결에 실패했어요. 다시 시도해 주세요.' : 'Wallet connection failed. Please try again.');
-      slNotify(t);
+      slNotify(lang==='KO' ? '지갑 점수를 확인하지 못했습니다. 다시 시도해 주세요.'
+                           : 'Could not score that wallet. Please try again.');
     }
   };
 
@@ -1686,7 +1831,7 @@ window.SLWallet = (function(){
     try{ await SLWallet.disconnect(); }catch(e){}
     /* The signature and score belong to the released wallet, so every
        wallet-derived field goes with it. Quiz progress is deliberately kept. */
-    this.set({ checking:false, wallet:null });
+    this.set({ checking:false, wallet:null, conn:null });
     slNotify(lang==='KO' ? '지갑 연결을 해제했습니다. 다른 지갑을 연결할 수 있어요.'
                          : 'Wallet disconnected. You can connect a different one.');
   };
