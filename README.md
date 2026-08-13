@@ -62,6 +62,28 @@ and `focus` because Chrome throttles timers while the user is away in their wall
 
 ---
 
+## Icons and motion
+
+Favicons are generated from the Superluminal sunburst mark already embedded in the page,
+composited on the site's ground colour `#010E11` so it reads on a light or dark tab strip:
+`favicon.ico` (16/32/48), `favicon-16.png`, `favicon-32.png`, `apple-touch-icon.png` (180),
+and `favicon.png` (512) which also serves as the `og:image` and the Reown modal icon.
+
+The motion pass is CSS-first and every piece is disabled under `prefers-reduced-motion`:
+
+- the hero tick ruler runs a slow scan across it, each tick staggered by `--i` set at render
+- the header sunburst turns once every 80s
+- cards lift 2px on hover
+- the hero headline and kicker animate in on first paint only
+
+That last one matters. `render()` replaces the markup on every keystroke, so any entrance
+animation would replay each time a user types. The hero entrance is scoped to
+`body:not(.sl-booted)` and the flag is set shortly after first paint, so it can only ever
+run once. The scroll-reveal has the same hazard and handles it by revealing anything already
+on screen immediately rather than fading it back in.
+
+---
+
 ## How an entry is created
 
 1. User enters their **X handle and Telegram handle**, then connects a wallet through
