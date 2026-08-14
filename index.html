@@ -14,6 +14,9 @@
 <meta property="og:description" content="Prove you understand the product, then trade it on testnet.">
 <meta property="og:image" content="/favicon.png">
 <meta name="twitter:card" content="summary">
+<link rel="preconnect" href="https://esm.sh" crossorigin>
+<link rel="preconnect" href="https://api.web3modal.org" crossorigin>
+<link rel="dns-prefetch" href="https://explorer-api.walletconnect.com">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@1,400;1,500&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Sans+KR:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -1660,6 +1663,14 @@ window.SLWallet = (function(){
           url: location.origin,
           icons:[ location.origin + '/favicon.png' ]
         },
+        /* Pin the SVM wallets Korean traders actually use, so they are on screen
+           the instant the modal opens instead of appearing once the registry
+           request lands. Ids read from the Reown registry, not guessed. */
+        featuredWalletIds:[
+          'a797aa35c0fadbfc1a53e7f675162ed5226968b44a19ee3d24385c64d1d3c393', // Phantom
+          '1ca0bdd4747578705b1939af023d120677c64fe6ca76add81fda36e350605e79', // Solflare
+          '2bd8c14e035c2d48f184aaa168559e86b0e3433228d3c4075900a221785019b0'  // Backpack
+        ],
         features:{ analytics:false, email:false, socials:[] }
       });
       ready = true; mode = 'appkit';
@@ -1694,6 +1705,16 @@ window.SLWallet = (function(){
 
   return {
     get mode(){ return mode; },
+    /* Warm AppKit up before anyone clicks. The CDN module is large and the wallet
+       registry is a separate round trip, so initialising on click means the modal
+       opens empty and fills in seconds later, which reads as broken. Idle-time
+       preload makes it ready by the time the button is pressed. Failure is silent:
+       connect() will simply initialise it then, exactly as before. */
+    preload(){
+      const go = ()=>{ initAppKit().catch(()=>{}); };
+      if('requestIdleCallback' in window) requestIdleCallback(go, {timeout:2500});
+      else setTimeout(go, 1200);
+    },
     async connect(){
       // 1. Reown AppKit
       const ak = await initAppKit();
@@ -1802,6 +1823,9 @@ window.SLWallet = (function(){
     }
   };
 })();
+
+/* Warm the wallet stack as soon as the page is idle. */
+try{ SLWallet.preload(); }catch(e){}
 
 /* ---- replace the simulated connect() with the real one ---- */
 (function(){
