@@ -1643,13 +1643,20 @@ window.SLWallet = (function(){
     if(initing) return initing;
     initing = (async () => {
     try{
-      /* Pinned. A floating `@1` silently upgrades across AppKit minors, and the
-         connect flow depends on behaviour that is not covered by semver. 1.6.8
-         is the build already proven in production on the Fogo activation. */
+      /* Pinned to an exact version, never a floating `@1`: the connect flow
+         depends on behaviour semver does not cover, and a silent minor bump is
+         how this broke before. 1.6.8 was the Fogo build, but it requests wallet
+         icons from an asset path Reown has since retired, so every registry icon
+         came back 404 and the modal rendered blank tiles. 1.8.23 requests
+         /getWalletImage/, which returns 200. Verified on this project id before
+         bumping: full API surface present (open, close, disconnect, getAddress,
+         getIsConnectedState, getState, subscribeAccount, subscribeState,
+         getWalletProvider), getState keeps the same shape so the cancel poll
+         still works, and cancel-on-close resolved in 2.8s. */
       const [{ createAppKit }, { SolanaAdapter }, nets] = await Promise.all([
-        import('https://esm.sh/@reown/appkit@1.6.8?bundle'),
-        import('https://esm.sh/@reown/appkit-adapter-solana@1.6.8?bundle'),
-        import('https://esm.sh/@reown/appkit@1.6.8/networks?bundle')
+        import('https://esm.sh/@reown/appkit@1.8.23?bundle'),
+        import('https://esm.sh/@reown/appkit-adapter-solana@1.8.23?bundle'),
+        import('https://esm.sh/@reown/appkit@1.8.23/networks?bundle')
       ]);
       const networks = CONFIG.SVM_NETWORK === 'mainnet'
         ? [nets.solana] : [nets.solanaTestnet, nets.solanaDevnet];
