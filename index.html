@@ -124,12 +124,12 @@ table.slc tr:last-child td{border-bottom:0;}
    then rests. Ticks hang from a common top edge, so the origin is the top. The
    stagger comes from --i, set per tick at render. */
 .sl-tick{transform-origin:top center;will-change:transform;
-  animation:slTickScan 7.5s cubic-bezier(.33,0,.2,1) infinite;
-  animation-delay:calc(var(--i,0) * 58ms);}
+  animation:slTickScan 3.6s cubic-bezier(.33,0,.2,1) infinite;
+  animation-delay:calc(var(--i,0) * 30ms);}
 @keyframes slTickScan{
-  0%,40%,100%{transform:scaleY(1);opacity:1;filter:none;}
-  45%{transform:scaleY(1.85);opacity:1;filter:drop-shadow(0 0 7px rgba(227,242,150,.9));}
-  52%{transform:scaleY(1);opacity:1;filter:none;}
+  0%,36%,100%{transform:scaleY(1);opacity:1;filter:none;}
+  42%{transform:scaleY(1.85);opacity:1;filter:drop-shadow(0 0 7px rgba(227,242,150,.9));}
+  50%{transform:scaleY(1);opacity:1;filter:none;}
 }
 
 /* ---------- header sunburst, one slow turn ---------- */
@@ -370,7 +370,12 @@ class DCLogic {
         return;
       }
       const fn = v[act];
-      if (typeof fn !== 'function') return;
+      /* A missing handler used to fail silently, which hid a dead connect button
+         for days. Say so instead. */
+      if (typeof fn !== 'function'){
+        if (act) console.warn('[bind] no handler bound for data-act="' + act + '"');
+        return;
+      }
       /* Call handlers with the component as `this`. Every handler in the original
          design was an arrow class property, which is auto-bound, so invoking them
          bare worked by accident. The wallet handlers are prototype methods: `this`
@@ -2191,6 +2196,18 @@ const SLMotion = (function(){
   };
   try{ SLMotion.apply(); }catch(e){}
 })();
+
+
+/* ============ rebind ============
+   connect, scoreWallet and disconnect are assigned to Component.prototype by the
+   blocks above, which run AFTER the app has already done its first render. At
+   that first render `this.connect` was still undefined, so _bind skipped it and
+   the button was left with no click listener at all.
+
+   Any later render fixed it by accident, which is why switching language made
+   connect start working and why the failure looked intermittent. Render once
+   more now that every handler exists. */
+try{ app.render(); }catch(e){ console.warn('[boot] rebind failed:', e && e.message); }
 
 </script>
 </body>
